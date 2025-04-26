@@ -4,6 +4,9 @@ PKG := ./...
 PREFIX := [make]
 BUILD_DIR := bin/
 
+# Dynamically find all directories inside cmd/ that have a main.go
+BINARIES := $(shell find cmd -type f -name main.go | sed 's|/main.go||' | sed 's|^cmd/||')
+
 # Default target
 .DEFAULT_GOAL := build
 
@@ -20,7 +23,12 @@ vet: fmt
 
 build: vet
 	@echo "$(PREFIX) Building $(APP_NAME) binaries in $(BUILD_DIR)..."
-	@$(GO) build -o $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR)
+	@for bin in $(BINARIES); do \
+		binary_name=$$(echo $$bin | tr '/' '-'); \
+		echo "$(PREFIX) Building $$bin as $$binary_name..."; \
+		$(GO) build -o $(BUILD_DIR)$$binary_name ./cmd/$$bin; \
+	done
 
 test:
 	@echo "$(PREFIX) Running tests..."
