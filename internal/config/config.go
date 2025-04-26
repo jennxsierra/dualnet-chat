@@ -6,12 +6,9 @@ import (
 	"os"
 )
 
-type Config struct {
-	Port int
-}
-
-func LoadConfig() Config {
-	port := flag.Int("port", 4000, "Port to run the application on")
+// LoadConfig process and validates a "port" flag, whose default is set by its parameter.
+func LoadConfig(defaultPort int) Config {
+	port := flag.Int("port", defaultPort, "Port to run the application on")
 	flag.Parse()
 
 	if !validatePort(*port) {
@@ -22,6 +19,11 @@ func LoadConfig() Config {
 	return Config{
 		Port: *port,
 	}
+}
+
+// Config stores the value of the application port.
+type Config struct {
+	Port int
 }
 
 // validatePort returns true if passed in port is with the valid range and false otherwise.

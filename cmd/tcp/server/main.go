@@ -1,7 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/jennxsierra/dualnet-chat/internal/config"
+)
 
 func main() {
-	fmt.Println("TCP Server")
+	cfg := config.LoadConfig(4000)
+	fmt.Printf("Port: %v\n", cfg.Port)
 }
