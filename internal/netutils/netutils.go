@@ -1,6 +1,8 @@
 package netutils
 
-import "net"
+import (
+	"net"
+)
 
 // GetIPv4Addr returns a IPv4 net.Addr for the local machine based on the network ("tcp", "udp") and port.
 func GetIPv4Addr(network string, port int) net.Addr {
@@ -37,4 +39,16 @@ func makeAddr(network string, ip net.IP, port int) net.Addr {
 		// unknown network, fallback to TCPAddr
 		return &net.TCPAddr{IP: ip, Port: port}
 	}
+}
+
+// IsValidPort returns true if passed in port is with the valid range and false otherwise.
+func IsValidPort(port int) bool {
+	return port >= 1 && port <= 65535
+}
+
+// IsValidTCPAddress checks if the given address is a valid IP:port format
+func IsValidTCPAddress(addr string) bool {
+	// try to resolve the TCP address to validate it
+	_, err := net.ResolveTCPAddr("tcp", addr)
+	return err == nil
 }
