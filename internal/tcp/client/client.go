@@ -68,7 +68,7 @@ func (c *Client) handleMessages() {
 		message := string(buf[:n])
 
 		// print server message and refresh screen
-		c.rl.Write([]byte("\n" + message))
+		c.rl.Write([]byte(message))
 		c.rl.Refresh()
 	}
 }
@@ -85,7 +85,7 @@ func (c *Client) sendMessages() {
 
 		// close the connection on "/exit"
 		if strings.ToLower(line) == "/exit" {
-			fmt.Println("Exiting...")
+			fmt.Println("\nGoodbye!")
 			c.Conn.Close()
 			break
 		}
