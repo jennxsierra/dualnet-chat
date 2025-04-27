@@ -1,12 +1,11 @@
 package client
 
 import (
-	"bufio"
 	"fmt"
 	"net"
-	"os"
 	"strings"
 
+	"github.com/chzyer/readline"
 	"github.com/jennxsierra/dualnet-chat/internal/netutils"
 )
 
@@ -14,6 +13,7 @@ import (
 type Client struct {
 	Conn net.Conn
 	Name string
+	rl   *readline.Instance
 }
 
 // NewClient creates a new client instance that connects to the server.
@@ -40,6 +40,14 @@ func (c *Client) Start() {
 	fmt.Println("[info] Enter \"/exit\" to disconnect")
 	fmt.Printf("[info] You are connected to [%s] as [%s]\n\n", c.Conn.RemoteAddr(), c.Name)
 
+	// initialize readline
+	rl, err := readline.New(fmt.Sprintf("[%s]: ", c.Name))
+	if err != nil {
+		panic(err)
+	}
+	defer rl.Close()
+	c.rl = rl
+
 	// send the name as the first message to the server
 	fmt.Fprintf(c.Conn, "%s\n", c.Name)
 
@@ -49,27 +57,40 @@ func (c *Client) Start() {
 
 // handleMessages listens for messages from the server and prints them to the console.
 func (c *Client) handleMessages() {
-	scanner := bufio.NewScanner(c.Conn)
-	for scanner.Scan() {
-		fmt.Println(scanner.Text())
+	scanner := readline.NewCancelableStdin(c.Conn)
+	buf := make([]byte, 4096)
+	for {
+		// read server message
+		n, err := scanner.Read(buf)
+		if err != nil {
+			break
+		}
+		message := string(buf[:n])
+
+		// print server message and refresh screen
+		c.rl.Write([]byte("\n" + message))
+		c.rl.Refresh()
 	}
 }
 
 // sendMessages reads user input from standard input and sends it to the server.
 func (c *Client) sendMessages() {
-	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		fmt.Printf("[%s]: ", c.Name)
-		scanner.Scan()
-		message := scanner.Text()
+		// read client message
+		line, err := c.rl.Readline()
+		if err != nil {
+			break
+		}
+		line = strings.TrimSpace(line)
 
 		// close the connection on "/exit"
-		if strings.ToLower(message) == "/exit" {
+		if strings.ToLower(line) == "/exit" {
 			fmt.Println("Exiting...")
 			c.Conn.Close()
 			break
 		}
 
-		fmt.Fprintf(c.Conn, "%s\n", message)
+		// send message to the server
+		fmt.Fprintf(c.Conn, "%s\n", line)
 	}
 }
