@@ -14,6 +14,7 @@ type Client struct {
 	Conn net.Conn
 	Name string
 	rl   *readline.Instance
+	done chan struct{}
 }
 
 // NewClient creates a new client instance that connects to the server.
@@ -48,6 +49,8 @@ func (c *Client) Start() {
 	defer rl.Close()
 	c.rl = rl
 
+	c.done = make(chan struct{})
+
 	// send the name as the first message to the server
 	fmt.Fprintf(c.Conn, "%s\n", c.Name)
 
@@ -71,15 +74,26 @@ func (c *Client) handleMessages() {
 		c.rl.Write([]byte(message))
 		c.rl.Refresh()
 	}
+
+	close(c.done)
+	c.rl.Close()
 }
 
 // sendMessages reads user input from standard input and sends it to the server.
 func (c *Client) sendMessages() {
 	for {
-		// read client message
+		// continue reading user input
 		line, err := c.rl.Readline()
 		if err != nil {
-			break
+			// check if server closed
+			select {
+			case <-c.done:
+				fmt.Println("\n[info] Server disconnected. Exiting...")
+			default:
+				// user pressed Ctrl+D or other readline error
+				fmt.Println("\nGoodbye!")
+			}
+			return
 		}
 		line = strings.TrimSpace(line)
 
@@ -87,7 +101,7 @@ func (c *Client) sendMessages() {
 		if strings.ToLower(line) == "/exit" {
 			fmt.Println("\nGoodbye!")
 			c.Conn.Close()
-			break
+			return
 		}
 
 		// send message to the server

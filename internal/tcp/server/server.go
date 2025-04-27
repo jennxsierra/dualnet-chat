@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/jennxsierra/dualnet-chat/internal/tcp/client"
 )
@@ -33,6 +36,8 @@ func (s *Server) Start() error {
 		return err
 	}
 	defer listener.Close()
+
+	s.monitorTermSig()
 
 	// welcome message
 	fmt.Println("[dualnet-chat TCP Server]")
@@ -94,4 +99,28 @@ func (s *Server) broadcast(message string, ignoreConn net.Conn) {
 			fmt.Fprint(c.Conn, message) // write message to the connection
 		}
 	}
+}
+
+func (s *Server) monitorTermSig() {
+	signalChan := make(chan os.Signal, 1)
+
+	// register channel to receive interrupt and termination OS signals
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	// when a proper signal is received, log message and exit program
+	go func() {
+		<-signalChan
+		fmt.Println() // print a newline for neatness
+		log.Println("[info] Server shutting down...")
+
+		// close all client connections
+		s.mu.Lock()
+		for conn, c := range s.Clients {
+			log.Printf("[-] Disconnecting %s", c.Name)
+			conn.Close()
+		}
+		s.mu.Unlock()
+
+		os.Exit(0)
+	}()
 }
