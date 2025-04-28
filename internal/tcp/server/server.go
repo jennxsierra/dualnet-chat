@@ -37,7 +37,7 @@ func (s *Server) Start() error {
 	}
 	defer listener.Close()
 
-	s.monitorTermSig()
+	s.monitorTermSig() // monitor for termination signal
 
 	// welcome message
 	fmt.Println("[dualnet-chat TCP Server]")
@@ -82,7 +82,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 		delete(s.Clients, conn)
 		s.mu.Unlock()
 
-		// log and broadcase client disconnection
+		// log and broadcast client disconnection
 		log.Printf("[-] %s", c.Name)
 		s.broadcast(fmt.Sprintf("[-] %s left the chat\n", c.Name), conn)
 	}
@@ -94,20 +94,23 @@ func (s *Server) broadcast(message string, ignoreConn net.Conn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// write message to every connected client
 	for conn, c := range s.Clients {
 		if conn != ignoreConn {
-			fmt.Fprint(c.Conn, message) // write message to the connection
+			fmt.Fprint(c.Conn, message)
 		}
 	}
 }
 
+// monitorTermSig listens for a termination signal, and upon receiving one,
+// prints a message and disconnects every connected client.
 func (s *Server) monitorTermSig() {
 	signalChan := make(chan os.Signal, 1)
 
 	// register channel to receive interrupt and termination OS signals
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
-	// when a proper signal is received, log message and exit program
+	// when a proper signal is received, disconnect all clients and exit program
 	go func() {
 		<-signalChan
 		fmt.Println() // print a newline for neatness

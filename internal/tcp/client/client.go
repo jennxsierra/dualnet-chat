@@ -25,10 +25,20 @@ func NewClient(serverAddr string, name string) (*Client, error) {
 		return nil, err
 	}
 
+	// get the connection's IPv4 address and port
 	clientAddr := netutils.GetIPv4Addr("tcp", conn.LocalAddr().(*net.TCPAddr).Port)
+
+	// create readline instance
+	rl, err := readline.New(fmt.Sprintf("[%s]: ", fmt.Sprintf("%s@%s", name, clientAddr)))
+	if err != nil {
+		return nil, err
+	}
+
 	client := &Client{
 		Conn: conn,
 		Name: fmt.Sprintf("%s@%s", name, clientAddr), // e.g. AHARCH@192.168.18.4:51756
+		rl:   rl,
+		done: make(chan struct{}),
 	}
 
 	return client, nil
@@ -38,18 +48,7 @@ func NewClient(serverAddr string, name string) (*Client, error) {
 func (c *Client) Start() {
 	// welcome message
 	fmt.Println("[dualnet-chat TCP Client]")
-	fmt.Println("[info] Enter \"/exit\" to disconnect")
 	fmt.Printf("[info] You are connected to [%s] as [%s]\n\n", c.Conn.RemoteAddr(), c.Name)
-
-	// initialize readline
-	rl, err := readline.New(fmt.Sprintf("[%s]: ", c.Name))
-	if err != nil {
-		panic(err)
-	}
-	defer rl.Close()
-	c.rl = rl
-
-	c.done = make(chan struct{})
 
 	// send the name as the first message to the server
 	fmt.Fprintf(c.Conn, "%s\n", c.Name)
@@ -75,34 +74,32 @@ func (c *Client) handleMessages() {
 		c.rl.Refresh()
 	}
 
+	// if cannot read from server because the server disconnected,
+	// notify channel and close readline
 	close(c.done)
 	c.rl.Close()
 }
 
 // sendMessages reads user input from standard input and sends it to the server.
 func (c *Client) sendMessages() {
+	// continuously reading user input
 	for {
-		// continue reading user input
 		line, err := c.rl.Readline()
+
+		// return on error
 		if err != nil {
-			// check if server closed
 			select {
-			case <-c.done:
+			case <-c.done: // check if server was disconnected
 				fmt.Println("\n[info] Server disconnected. Exiting...")
-			default:
-				// user pressed Ctrl+D or other readline error
+			default: // user disconnects themselves
 				fmt.Println("\nGoodbye!")
 			}
-			return
-		}
-		line = strings.TrimSpace(line)
 
-		// close the connection on "/exit"
-		if strings.ToLower(line) == "/exit" {
-			fmt.Println("\nGoodbye!")
-			c.Conn.Close()
 			return
 		}
+
+		// trim whitespace
+		line = strings.TrimSpace(line)
 
 		// send message to the server
 		fmt.Fprintf(c.Conn, "%s\n", line)
