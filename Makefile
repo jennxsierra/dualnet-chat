@@ -40,6 +40,7 @@ build: vet
 clean:
 	@echo "$(PREFIX) Cleaning build artifacts..."
 	@rm -rfv $(BUILD_DIR)
+	@rm -rfv tests/results
 
 check: fmt vet test
 	@echo "$(PREFIX) Quality checks (format, vet, tests) complete!"
