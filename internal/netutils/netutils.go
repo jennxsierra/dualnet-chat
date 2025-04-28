@@ -46,7 +46,7 @@ func IsValidPort(port int) bool {
 	return port >= 1 && port <= 65535
 }
 
-// IsValidTCPAddress checks if the given address is a valid IP:port format
+// IsValidTCPAddress checks if the given address is a valid IP:port format.
 func IsValidTCPAddress(addr string) bool {
 	// try to resolve the TCP address to validate it
 	_, err := net.ResolveTCPAddr("tcp", addr)
