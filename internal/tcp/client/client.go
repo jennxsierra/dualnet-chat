@@ -27,6 +27,7 @@ func NewClient(serverAddr string, name string) (*Client, error) {
 
 	// get the connection's IPv4 address and port
 	clientAddr := netutils.GetIPv4Addr("tcp", conn.LocalAddr().(*net.TCPAddr).Port)
+	fullName := fmt.Sprintf("%s@%s", name, clientAddr) // e.g. AHARCH@192.168.18.4:51756
 
 	// create readline instance
 	rl, err := readline.New(fmt.Sprintf("[%s]: ", fmt.Sprintf("%s@%s", name, clientAddr)))
@@ -36,7 +37,7 @@ func NewClient(serverAddr string, name string) (*Client, error) {
 
 	client := &Client{
 		Conn: conn,
-		Name: fmt.Sprintf("%s@%s", name, clientAddr), // e.g. AHARCH@192.168.18.4:51756
+		Name: fullName,
 		rl:   rl,
 		done: make(chan struct{}),
 	}
