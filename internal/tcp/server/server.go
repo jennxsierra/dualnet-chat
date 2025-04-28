@@ -74,7 +74,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 		// continuously read and broadcast client message until disconnect
 		for scanner.Scan() {
 			text := scanner.Text()
-			s.broadcast(fmt.Sprintf("[%s] %s\n", c.Name, text), conn)
+			s.broadcast(fmt.Sprintf("[%s]: %s\n", c.Name, text), conn)
 		}
 
 		// remove disconnected client from the server map
