@@ -1,12 +1,12 @@
 package server
 
 import (
-	"bufio"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -16,9 +16,10 @@ import (
 
 // Server stores information about its address and connected clients.
 type Server struct {
-	Addr    string
-	Clients map[net.Conn]*client.Client
-	mu      sync.Mutex
+	Addr         string
+	Clients      map[net.Conn]*client.Client
+	mu           sync.Mutex
+	shuttingDown bool
 }
 
 // NewServer creates a [Server] instance given an address.
@@ -58,35 +59,52 @@ func (s *Server) Start() error {
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	scanner := bufio.NewScanner(conn)
-	if scanner.Scan() {
-		clientName := scanner.Text() // read the client's name first
+	// read the client's name first
+	buf := make([]byte, 1024)
+	n, err := conn.Read(buf)
+	if err != nil {
+		if !s.shuttingDown && err.Error() != "EOF" { // do not print if shutting down
+			log.Println("Error reading client name:", err)
+		}
+		return
+	}
+	clientName := strings.TrimSpace(string(buf[:n]))
 
-		// add new client to the server map
-		s.mu.Lock()
-		c := &client.Client{Conn: conn, Name: clientName}
-		s.Clients[conn] = c
-		s.mu.Unlock()
+	// add the new client to the server map
+	s.mu.Lock()
+	c := &client.Client{Conn: conn, Name: clientName}
+	s.Clients[conn] = c
+	s.mu.Unlock()
 
-		// log and broadcast client connection
-		log.Printf("[+] %s", c.Name)
-		s.broadcast(fmt.Sprintf("[+] %s joined the chat\n", c.Name), conn)
+	// log and broadcast client connection
+	log.Printf("[+] %s", c.Name)
+	s.broadcast(fmt.Sprintf("[+] %s joined the chat\n", c.Name), conn)
 
-		// continuously read and broadcast client message until disconnect
-		for scanner.Scan() {
-			text := scanner.Text()
-			s.broadcast(fmt.Sprintf("[%s]: %s\n", c.Name, text), conn)
+	// continuously read and broadcast client messages until disconnect
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			if !s.shuttingDown && err.Error() != "EOF" { // do not print if shutting down
+				log.Println("Error reading client message:", err)
+			}
+			break
 		}
 
-		// remove disconnected client from the server map
-		s.mu.Lock()
-		delete(s.Clients, conn)
-		s.mu.Unlock()
-
-		// log and broadcast client disconnection
-		log.Printf("[-] %s", c.Name)
-		s.broadcast(fmt.Sprintf("[-] %s left the chat\n", c.Name), conn)
+		// don't broadcast empty messages
+		if n > 0 {
+			text := string(buf[:n])
+			s.broadcast(fmt.Sprintf("[%s]: %s", c.Name, text), conn)
+		}
 	}
+
+	// remove disconnected client from the server map
+	s.mu.Lock()
+	delete(s.Clients, conn)
+	s.mu.Unlock()
+
+	// log and broadcast client disconnection
+	log.Printf("[-] %s", c.Name)
+	s.broadcast(fmt.Sprintf("[-] %s left the chat\n", c.Name), conn)
 }
 
 // broadcast sends a client message to all clients in the server map
@@ -117,8 +135,9 @@ func (s *Server) monitorTermSig() {
 		fmt.Println() // print a newline for neatness
 		log.Println("[info] Server shutting down...")
 
-		// close all client connections
+		// close all client connections and set shuttingDown to true
 		s.mu.Lock()
+		s.shuttingDown = true
 		for conn, c := range s.Clients {
 			log.Printf("[-] Disconnecting %s", c.Name)
 			conn.Close()
