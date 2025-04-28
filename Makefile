@@ -76,29 +76,37 @@ clean-network:
 	-sudo tc qdisc del dev lo root 2>/dev/null
 
 # tests current network
-test-network: build clean-network
+test-network: clean-network
 	@echo "$(PREFIX) Launching server and client under real (no impairment) network..."
-	@{ \
+	@mkdir -p tests/results
+	@LOG_FILE=tests/results/$$(date +"%Y-%m-%d_%H-%M-%S").log; \
+	{ \
 		$(SERVER_BINARY) --port $(SERVER_PORT) & \
 		SERVER_PID=$$!; \
 		sleep 1; \
-		go test -v -count=1 ./tests/network; \
+		echo "$(PREFIX) Running go test, logging to $$LOG_FILE"; \
+		go test -v -count=1 ./tests/network | tee $$LOG_FILE; \
 		kill $$SERVER_PID; \
 		wait $$SERVER_PID 2>/dev/null || true; \
 	}
 
+
 # internal helper for impaired tests
-_test-network-impaired: build clean-network impair-network
+_test-network-impaired: clean-network impair-network
 	@echo "$(PREFIX) Launching server and client under impaired network..."
-	@{ \
+	@mkdir -p tests/results
+	@LOG_FILE=tests/results/$$(date +"%Y-%m-%d_%H-%M-%S").log; \
+	{ \
 		$(SERVER_BINARY) --port $(SERVER_PORT) & \
 		SERVER_PID=$$!; \
 		sleep 1; \
-		go test -v -count=1 ./tests/network; \
+		echo "$(PREFIX) Running go test, logging to $$LOG_FILE"; \
+		go test -v -count=1 ./tests/network | tee $$LOG_FILE; \
 		kill $$SERVER_PID; \
 		wait $$SERVER_PID 2>/dev/null || true; \
 	}
 	@$(MAKE) clean-network
+
 
 # --- TCP Network Test Shortcuts ---
 
