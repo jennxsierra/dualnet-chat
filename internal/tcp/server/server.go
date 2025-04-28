@@ -10,6 +10,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/jennxsierra/dualnet-chat/internal/netutils"
 	"github.com/jennxsierra/dualnet-chat/internal/tcp/client"
 )
 
@@ -41,7 +42,7 @@ func (s *Server) Start() error {
 
 	// welcome message
 	fmt.Println("[dualnet-chat TCP Server]")
-	log.Printf("[info] Server is listening on %s\n\n", s.Addr)
+	log.Printf("[info] Server is listening on %s\n\n", netutils.GetIPv4Addr("tcp", listener.Addr().(*net.TCPAddr).Port))
 
 	for {
 		conn, err := listener.Accept()
