@@ -110,8 +110,12 @@ func (s *Server) handleConnection(conn net.Conn) {
 			break
 		}
 
-		// don't broadcast empty messages
 		if n > 0 {
+			text := strings.TrimSpace(string(buf[:n]))
+			if text == "" {
+				continue // skip empty messages
+			}
+
 			// retrieve client
 			s.mu.Lock()
 			sc := s.Clients[conn]
@@ -124,7 +128,6 @@ func (s *Server) handleConnection(conn net.Conn) {
 
 			// check if the client is allowed to send the message
 			if sc.Limiter.Allow() {
-				text := string(buf[:n])
 				s.broadcast(fmt.Sprintf("[%s]: %s", sc.Client.Name, text), conn)
 			} else {
 				// optionally notify user they're sending too fast
@@ -152,7 +155,7 @@ func (s *Server) broadcast(message string, ignoreConn net.Conn) {
 	// write message to every connected client
 	for conn, sc := range s.Clients {
 		if conn != ignoreConn {
-			fmt.Fprint(sc.Client.Conn, message)
+			fmt.Fprintf(sc.Client.Conn, "%s\n", message)
 		}
 	}
 }
