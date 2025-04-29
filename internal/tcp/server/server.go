@@ -13,12 +13,19 @@ import (
 
 	"github.com/jennxsierra/dualnet-chat/internal/netutils"
 	"github.com/jennxsierra/dualnet-chat/internal/tcp/client"
+	"golang.org/x/time/rate"
 )
+
+// ServerClient wraps [client.Client] along with a rate limiter.
+type ServerClient struct {
+	Client  *client.Client
+	Limiter *rate.Limiter
+}
 
 // Server stores information about its address and connected clients.
 type Server struct {
 	Addr         string
-	Clients      map[net.Conn]*client.Client
+	Clients      map[net.Conn]*ServerClient
 	mu           sync.Mutex
 	shuttingDown bool
 }
@@ -27,7 +34,7 @@ type Server struct {
 func NewServer(addr string) *Server {
 	return &Server{
 		Addr:    addr,
-		Clients: make(map[net.Conn]*client.Client),
+		Clients: make(map[net.Conn]*ServerClient),
 	}
 }
 
@@ -77,15 +84,21 @@ func (s *Server) handleConnection(conn net.Conn) {
 	}
 	clientName := strings.TrimSpace(string(buf[:n]))
 
+	// create a limiter for this client: 1 message per second with burst of 3
+	limiter := rate.NewLimiter(1, 3)
+
 	// add the new client to the server map
 	s.mu.Lock()
-	c := &client.Client{Conn: conn, Name: clientName}
+	c := &ServerClient{
+		Client:  &client.Client{Conn: conn, Name: clientName},
+		Limiter: limiter,
+	}
 	s.Clients[conn] = c
 	s.mu.Unlock()
 
 	// log and broadcast client connection
-	log.Printf("[+] %s", c.Name)
-	s.broadcast(fmt.Sprintf("[+] %s joined the chat\n", c.Name), conn)
+	log.Printf("[+] %s", c.Client.Name)
+	s.broadcast(fmt.Sprintf("[+] %s joined the chat\n", c.Client.Name), conn)
 
 	// continuously read and broadcast client messages until disconnect
 	for {
@@ -99,8 +112,24 @@ func (s *Server) handleConnection(conn net.Conn) {
 
 		// don't broadcast empty messages
 		if n > 0 {
-			text := string(buf[:n])
-			s.broadcast(fmt.Sprintf("[%s]: %s", c.Name, text), conn)
+			// retrieve client
+			s.mu.Lock()
+			sc := s.Clients[conn]
+			s.mu.Unlock()
+
+			// client may have disconnected
+			if sc == nil {
+				break
+			}
+
+			// check if the client is allowed to send the message
+			if sc.Limiter.Allow() {
+				text := string(buf[:n])
+				s.broadcast(fmt.Sprintf("[%s]: %s", sc.Client.Name, text), conn)
+			} else {
+				// optionally notify user they're sending too fast
+				fmt.Fprint(conn, "[server]: You are sending messages too fast. Please slow down.\n")
+			}
 		}
 	}
 
@@ -110,8 +139,8 @@ func (s *Server) handleConnection(conn net.Conn) {
 	s.mu.Unlock()
 
 	// log and broadcast client disconnection
-	log.Printf("[-] %s", c.Name)
-	s.broadcast(fmt.Sprintf("[-] %s left the chat\n", c.Name), conn)
+	log.Printf("[-] %s", c.Client.Name)
+	s.broadcast(fmt.Sprintf("[-] %s left the chat\n", c.Client.Name), conn)
 }
 
 // broadcast sends a client message to all clients in the server map
@@ -121,9 +150,9 @@ func (s *Server) broadcast(message string, ignoreConn net.Conn) {
 	defer s.mu.Unlock()
 
 	// write message to every connected client
-	for conn, c := range s.Clients {
+	for conn, sc := range s.Clients {
 		if conn != ignoreConn {
-			fmt.Fprint(c.Conn, message)
+			fmt.Fprint(sc.Client.Conn, message)
 		}
 	}
 }
@@ -146,7 +175,7 @@ func (s *Server) monitorTermSig() {
 		s.mu.Lock()
 		s.shuttingDown = true
 		for conn, c := range s.Clients {
-			log.Printf("[-] Disconnecting %s", c.Name)
+			log.Printf("[-] Disconnecting %s", c.Client.Name)
 			conn.Close()
 		}
 		s.mu.Unlock()
