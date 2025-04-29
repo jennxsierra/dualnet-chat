@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/chzyer/readline"
+	"github.com/fatih/color"
 	"github.com/jennxsierra/dualnet-chat/internal/netutils"
 )
 
@@ -30,7 +31,7 @@ func NewClient(serverAddr string, name string) (*Client, error) {
 	fullName := fmt.Sprintf("%s@%s", name, clientAddr) // e.g. AHARCH@192.168.18.4:51756
 
 	// create readline instance
-	rl, err := readline.New(fmt.Sprintf("[%s]: ", fmt.Sprintf("%s@%s", name, clientAddr)))
+	rl, err := readline.New(color.YellowString("[%s]: ", fmt.Sprintf("%s@%s", name, clientAddr)))
 	if err != nil {
 		return nil, err
 	}
