@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/jennxsierra/dualnet-chat/internal/netutils"
 	"github.com/jennxsierra/dualnet-chat/internal/tcp/client"
@@ -58,6 +59,12 @@ func (s *Server) Start() error {
 // handleConnection reads client messages and broadcasts it to all connected clients.
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
+
+	// periodially check TCP connection for sudden client disconnects (e.g. closing terminal window)
+	if tcpConn, ok := conn.(*net.TCPConn); ok {
+		tcpConn.SetKeepAlive(true)
+		tcpConn.SetKeepAlivePeriod(30 * time.Second) // shorter than default
+	}
 
 	// read the client's name first
 	buf := make([]byte, 1024)
