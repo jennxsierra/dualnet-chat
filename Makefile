@@ -51,16 +51,16 @@ SERVER_PORT = 4000
 
 # good network (fast and stable)
 GOOD_LATENCY = 10ms
-GOOD_LOSS = 0%
-GOOD_RATE = 100mbit
+GOOD_LOSS = 0.1%
+GOOD_RATE = 10mbit
 
 # normal network (moderate)
 NORMAL_LATENCY = 50ms
-NORMAL_LOSS = 0.5%
-NORMAL_RATE = 10mbit
+NORMAL_LOSS = 1%
+NORMAL_RATE = 5mbit
 
 # bad network (slow and unreliable)
-BAD_LATENCY = 300ms
+BAD_LATENCY = 200ms
 BAD_LOSS = 5%
 BAD_RATE = 1mbit
 
@@ -91,7 +91,6 @@ test-network: clean-network
 		wait $$SERVER_PID 2>/dev/null || true; \
 	}
 
-
 # internal helper for impaired tests
 _test-network-impaired: clean-network impair-network
 	@echo "$(PREFIX) Launching server and client under impaired network..."
@@ -108,24 +107,23 @@ _test-network-impaired: clean-network impair-network
 	}
 	@$(MAKE) clean-network
 
-
 # --- TCP Network Test Shortcuts ---
 
 test-tcp-network: test-network
 
 test-tcp-network-good:
 	@$(MAKE) -s SERVER_BINARY=$(BUILD_DIR)tcp-server CLIENT_BINARY=$(BUILD_DIR)tcp-client \
-		LATENCY=10ms LOSS=0.1% RATE=10mbit \
+		LATENCY=$(GOOD_LATENCY) LOSS=$(GOOD_LOSS) RATE=$(GOOD_RATE) \
 		_test-network-impaired
 
 test-tcp-network-normal:
 	@$(MAKE) -s SERVER_BINARY=$(BUILD_DIR)tcp-server CLIENT_BINARY=$(BUILD_DIR)tcp-client \
-		LATENCY=50ms LOSS=1% RATE=5mbit \
+		LATENCY=$(NORMAL_LATENCY) LOSS=$(NORMAL_LOSS) RATE=$(NORMAL_RATE) \
 		_test-network-impaired
 
 test-tcp-network-bad:
 	@$(MAKE) -s SERVER_BINARY=$(BUILD_DIR)tcp-server CLIENT_BINARY=$(BUILD_DIR)tcp-client \
-		LATENCY=200ms LOSS=5% RATE=1mbit \
+		LATENCY=$(BAD_LATENCY) LOSS=$(BAD_LOSS) RATE=$(BAD_RATE) \
 		_test-network-impaired
 
 # --- UDP Network Test Shortcuts ---
@@ -134,15 +132,15 @@ test-udp-network: test-network SERVER_BINARY=$(BUILD_DIR)udp-server CLIENT_BINAR
 
 test-udp-network-good:
 	@$(MAKE) -s SERVER_BINARY=$(BUILD_DIR)udp-server CLIENT_BINARY=$(BUILD_DIR)udp-client \
-		LATENCY=10ms LOSS=0.1% RATE=10mbit \
+		LATENCY=$(GOOD_LATENCY) LOSS=$(GOOD_LOSS) RATE=$(GOOD_RATE) \
 		_test-network-impaired
 
 test-udp-network-normal:
 	@$(MAKE) -s SERVER_BINARY=$(BUILD_DIR)udp-server CLIENT_BINARY=$(BUILD_DIR)udp-client \
-		LATENCY=50ms LOSS=1% RATE=5mbit \
+		LATENCY=$(NORMAL_LATENCY) LOSS=$(NORMAL_LOSS) RATE=$(NORMAL_RATE) \
 		_test-network-impaired
 
 test-udp-network-bad:
 	@$(MAKE) -s SERVER_BINARY=$(BUILD_DIR)udp-server CLIENT_BINARY=$(BUILD_DIR)udp-client \
-		LATENCY=200ms LOSS=5% RATE=1mbit \
+		LATENCY=$(BAD_LATENCY) LOSS=$(BAD_LOSS) RATE=$(BAD_RATE) \
 		_test-network-impaired
