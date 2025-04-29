@@ -1,10 +1,39 @@
 package network
 
 import (
+	"io"
+	"log"
 	"net"
+	"os"
 	"testing"
 	"time"
 )
+
+// logger for printing to standard output and a log file
+var testLogger *log.Logger
+// log file path
+const logFilePath = "results/tcp_tests.log"
+func init() {
+	// ensure the log directory exists
+	logDir := "results"
+	err := os.MkdirAll(logDir, 0755) // create the directory if it doesn't exist
+	if err != nil {
+		log.Printf("Warning: Could not create log directory %s: %v", logDir, err)
+	}
+
+	var writers []io.Writer = []io.Writer{os.Stdout}
+
+	// open the log file for writing
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err == nil {
+		writers = append(writers, file)
+	} else {
+		log.Printf("Warning: Could not log to file %s: %v", logFilePath, err)
+	}
+
+	// initialize the logger with the writers
+	testLogger = log.New(io.MultiWriter(writers...), "", log.LstdFlags)
+}
 
 // TestConnectionLatency tests for the roundtrip time of a packet sent to and from
 // the server. In TCP connections, the client sends a SYN, receives a SYNACK from the
@@ -23,7 +52,7 @@ func TestConnectionLatency(t *testing.T) {
 	latency := time.Since(start)
 	defer conn.Close()
 
-	t.Logf("Measured TCP connection latency: %v", latency)
+	testLogger.Printf("Measured TCP connection latency: %v\n", latency)
 }
 
 // TestThroughput measures how long to send a 5MB payload to the server in 4KB
@@ -62,5 +91,5 @@ func TestThroughput(t *testing.T) {
 	}
 	duration := time.Since(start)
 
-	t.Logf("Sent %d bytes in %v (%.2f MB/s)", totalWritten, duration, float64(totalWritten)/(1024*1024)/duration.Seconds())
+	testLogger.Printf("Sent %d bytes in %v (%.2f MB/s)\n", totalWritten, duration, float64(totalWritten)/(1024*1024)/duration.Seconds())
 }
