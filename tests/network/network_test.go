@@ -11,8 +11,10 @@ import (
 
 // logger for printing to standard output and a log file
 var testLogger *log.Logger
+
 // log file path
 const logFilePath = "results/tcp_tests.log"
+
 func init() {
 	// ensure the log directory exists
 	logDir := "results"

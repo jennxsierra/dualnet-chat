@@ -2,6 +2,7 @@ package netutils
 
 import (
 	"net"
+	"strconv"
 )
 
 // GetIPv4Addr returns a IPv4 net.Addr for the local machine based on the network ("tcp", "udp") and port.
@@ -51,4 +52,20 @@ func IsValidTCPAddress(addr string) bool {
 	// try to resolve the TCP address to validate it
 	_, err := net.ResolveTCPAddr("tcp", addr)
 	return err == nil
+}
+
+// GetPortFromAddress extracts the port number from an address string in the format "host:port".
+// Returns the port as an integer and an error if parsing fails.
+func GetPortFromAddress(address string) (int, error) {
+	_, portStr, err := net.SplitHostPort(address)
+	if err != nil {
+		return 0, err
+	}
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		return 0, err
+	}
+
+	return port, nil
 }
