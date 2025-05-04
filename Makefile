@@ -10,6 +10,9 @@ BUILD_DIR := bin/
 SERVER_BINARY ?= $(BUILD_DIR)tcp-server
 CLIENT_BINARY ?= $(BUILD_DIR)tcp-client
 
+# default test pattern to run all tests
+TEST_PATTERN ?= "."
+
 # default
 .DEFAULT_GOAL := build
 
@@ -48,6 +51,7 @@ check: fmt vet test
 # --- Network Tests Section ---
 
 SERVER_PORT = 4000
+SERVER_PORT_UDP = 4001
 
 # good network (fast and stable)
 GOOD_LATENCY = 10ms
@@ -83,7 +87,7 @@ test-network: clean-network
 	SERVER_PID=$$!; \
 	sleep 1; \
 	echo "$(PREFIX) Running go test..."; \
-	go test -v -count=1 ./tests/network; \
+	go test -v -count=1 ./tests/network -run $(TEST_PATTERN); \
 	kill $$SERVER_PID; \
 	wait $$SERVER_PID 2>/dev/null || true
 
@@ -94,45 +98,56 @@ _test-network-impaired: clean-network impair-network
 	SERVER_PID=$$!; \
 	sleep 1; \
 	echo "$(PREFIX) Running go test..."; \
-	go test -v -count=1 ./tests/network; \
+	go test -v -count=1 ./tests/network -run $(TEST_PATTERN); \
 	kill $$SERVER_PID; \
 	wait $$SERVER_PID 2>/dev/null || true
 	@$(MAKE) clean-network
 
 # --- TCP Network Test Shortcuts ---
 
-test-tcp-network: test-network
+test-tcp-network:
+	@$(MAKE) -s TEST_PATTERN=^Test[^U] test-network
 
 test-tcp-network-good:
 	@$(MAKE) -s SERVER_BINARY=$(BUILD_DIR)tcp-server CLIENT_BINARY=$(BUILD_DIR)tcp-client \
 		LATENCY=$(GOOD_LATENCY) LOSS=$(GOOD_LOSS) RATE=$(GOOD_RATE) \
+		TEST_PATTERN=^Test[^U] \
 		_test-network-impaired
 
 test-tcp-network-normal:
 	@$(MAKE) -s SERVER_BINARY=$(BUILD_DIR)tcp-server CLIENT_BINARY=$(BUILD_DIR)tcp-client \
 		LATENCY=$(NORMAL_LATENCY) LOSS=$(NORMAL_LOSS) RATE=$(NORMAL_RATE) \
+		TEST_PATTERN=^Test[^U] \
 		_test-network-impaired
 
 test-tcp-network-bad:
 	@$(MAKE) -s SERVER_BINARY=$(BUILD_DIR)tcp-server CLIENT_BINARY=$(BUILD_DIR)tcp-client \
 		LATENCY=$(BAD_LATENCY) LOSS=$(BAD_LOSS) RATE=$(BAD_RATE) \
+		TEST_PATTERN=^Test[^U] \
 		_test-network-impaired
 
 # --- UDP Network Test Shortcuts ---
 
-test-udp-network: test-network SERVER_BINARY=$(BUILD_DIR)udp-server CLIENT_BINARY=$(BUILD_DIR)udp-client
+test-udp-network:
+	@$(MAKE) -s TEST_PATTERN=^TestUDP SERVER_BINARY=$(BUILD_DIR)udp-server CLIENT_BINARY=$(BUILD_DIR)udp-client SERVER_PORT=$(SERVER_PORT_UDP) test-network
 
 test-udp-network-good:
 	@$(MAKE) -s SERVER_BINARY=$(BUILD_DIR)udp-server CLIENT_BINARY=$(BUILD_DIR)udp-client \
+		SERVER_PORT=$(SERVER_PORT_UDP) \
 		LATENCY=$(GOOD_LATENCY) LOSS=$(GOOD_LOSS) RATE=$(GOOD_RATE) \
+		TEST_PATTERN=^TestUDP \
 		_test-network-impaired
 
 test-udp-network-normal:
 	@$(MAKE) -s SERVER_BINARY=$(BUILD_DIR)udp-server CLIENT_BINARY=$(BUILD_DIR)udp-client \
+		SERVER_PORT=$(SERVER_PORT_UDP) \
 		LATENCY=$(NORMAL_LATENCY) LOSS=$(NORMAL_LOSS) RATE=$(NORMAL_RATE) \
+		TEST_PATTERN=^TestUDP \
 		_test-network-impaired
 
 test-udp-network-bad:
 	@$(MAKE) -s SERVER_BINARY=$(BUILD_DIR)udp-server CLIENT_BINARY=$(BUILD_DIR)udp-client \
+		SERVER_PORT=$(SERVER_PORT_UDP) \
 		LATENCY=$(BAD_LATENCY) LOSS=$(BAD_LOSS) RATE=$(BAD_RATE) \
+		TEST_PATTERN=^TestUDP \
 		_test-network-impaired
