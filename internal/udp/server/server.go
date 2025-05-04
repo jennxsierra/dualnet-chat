@@ -129,6 +129,12 @@ func (s *Server) handleMessage(addr *net.UDPAddr, message string) {
 		return
 	}
 
+	// Handle disconnect message
+	if message == "BYE" {
+		s.handleClientDisconnect(addr)
+		return
+	}
+
 	// Handle regular message
 	// Check rate limit
 	if client.Limiter.Allow() {
@@ -137,6 +143,26 @@ func (s *Server) handleMessage(addr *net.UDPAddr, message string) {
 	} else {
 		// Notify client they're sending too fast
 		s.Conn.WriteToUDP([]byte("[server]: You are sending messages too fast. Please slow down.\n"), addr)
+	}
+}
+
+// handleClientDisconnect processes a client disconnection
+func (s *Server) handleClientDisconnect(addr *net.UDPAddr) {
+	addrStr := addr.String()
+
+	s.mu.Lock()
+	client, exists := s.Clients[addrStr]
+	if exists {
+		clientName := client.Name
+		delete(s.Clients, addrStr)
+		s.mu.Unlock()
+
+		// Log the disconnection
+		log.Printf("[-] %s", clientName)
+		// Broadcast disconnection message to other clients
+		s.broadcast(fmt.Sprintf("[-] %s left the chat\n", clientName), addr)
+	} else {
+		s.mu.Unlock()
 	}
 }
 
@@ -159,7 +185,7 @@ func (s *Server) registerClient(addr *net.UDPAddr, name string) {
 	s.broadcast(fmt.Sprintf("[+] %s joined the chat\n", name), addr)
 
 	// Send confirmation to the client
-	s.Conn.WriteToUDP([]byte(fmt.Sprintf("[server]: Welcome %s, you are now registered\n", name)), addr)
+	s.Conn.WriteToUDP([]byte(fmt.Sprintf("[server]: Welcome %s, you are now registered!\n\n", name)), addr)
 }
 
 // broadcast sends a message to all connected clients except the sender

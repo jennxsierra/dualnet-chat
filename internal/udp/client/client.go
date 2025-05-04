@@ -59,7 +59,7 @@ func NewClient(serverAddr string, name string) (*Client, error) {
 func (c *Client) Start() {
 	// Welcome message
 	fmt.Println("[dualnet-chat UDP Client]")
-	fmt.Printf("[info] You are connected to [%s] as [%s]\n\n", c.serverAddr, c.Name)
+	fmt.Printf("[info] You are connected to [%s] as [%s]\n", c.serverAddr, c.Name)
 
 	// Register with the server
 	c.register()
@@ -149,6 +149,8 @@ func (c *Client) sendMessages() {
 			case <-c.done: // Check if server was disconnected
 				fmt.Println("\n[info] Server disconnected. Exiting...")
 			default: // User disconnects themselves
+				// Send disconnect message to server before exiting
+				c.conn.Write([]byte("BYE"))
 				fmt.Println("\nGoodbye!")
 				close(c.done)
 			}
