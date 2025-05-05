@@ -210,7 +210,7 @@ func (s *Server) monitorInactiveClients() {
 			select {
 			case <-ticker.C:
 				now := time.Now()
-				inactiveThreshold := 2 * time.Minute
+				inactiveThreshold := 1 * time.Minute
 
 				s.mu.Lock()
 				for addrStr, client := range s.Clients {
