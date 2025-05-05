@@ -212,16 +212,18 @@ func (s *Server) monitorInactiveClients() {
 				now := time.Now()
 				inactiveThreshold := 1 * time.Minute
 
-				s.mu.Lock()
 				for addrStr, client := range s.Clients {
 					if now.Sub(client.LastSeen) > inactiveThreshold {
 						// Client hasn't sent a message in too long, consider them disconnected
-						delete(s.Clients, addrStr)
 						log.Printf("[-] %s (inactive timeout)", client.Name)
 						s.broadcast(fmt.Sprintf("[-] %s left the chat (timeout)\n", client.Name), client.Addr)
+
+						s.mu.Lock()
+						delete(s.Clients, addrStr)
+						s.mu.Unlock()
 					}
 				}
-				s.mu.Unlock()
+
 			case <-s.done:
 				return
 			}
