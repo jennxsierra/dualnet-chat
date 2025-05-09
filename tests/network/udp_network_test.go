@@ -106,9 +106,13 @@ func TestUDPThroughput(t *testing.T) {
 		t.Fatalf("Failed to receive welcome message: %v", err)
 	}
 
-	// Smaller payload for UDP to avoid fragmentation issues
-	payload := make([]byte, 1024*512) // 512KB total
-	chunkSize := 1024                 // 1KB chunk (UDP packet size should be kept small)
+	// Use 5MB payload to match TCP tests
+	payloadSize := 5 * 1024 * 1024 // 5MB total
+	chunkSize := 1024              // Keep 1KB chunks to avoid fragmentation
+	payload := make([]byte, payloadSize)
+
+	// Set a longer timeout for the larger payload
+	conn.SetReadDeadline(time.Now().Add(30 * time.Second))
 
 	// Measure the time to write the payload
 	totalWritten := 0
@@ -123,12 +127,15 @@ func TestUDPThroughput(t *testing.T) {
 			t.Fatalf("Failed during payload send: %v", err)
 		}
 		totalWritten += n
-
-		// Small delay to avoid overwhelming the network
-		time.Sleep(time.Millisecond)
 	}
 	duration := time.Since(start)
 
 	udpTestLogger.Printf("Sent %d bytes in %v (%.2f KB/s)\n",
 		totalWritten, duration, float64(totalWritten)/1024/duration.Seconds())
+
+	// Log the actual vs intended payload size to monitor any potential issues
+	if totalWritten != payloadSize {
+		udpTestLogger.Printf("Warning: Intended to send %d bytes, actually sent %d bytes",
+			payloadSize, totalWritten)
+	}
 }
