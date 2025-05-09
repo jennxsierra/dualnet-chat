@@ -130,8 +130,8 @@ func TestUDPThroughput(t *testing.T) {
 	}
 	duration := time.Since(start)
 
-	udpTestLogger.Printf("Sent %d bytes in %v (%.2f KB/s)\n",
-		totalWritten, duration, float64(totalWritten)/1024/duration.Seconds())
+	udpTestLogger.Printf("Sent %d bytes in %v (%.2f MB/s)\n",
+		totalWritten, duration, float64(totalWritten)/1024/1024/duration.Seconds())
 
 	// Log the actual vs intended payload size to monitor any potential issues
 	if totalWritten != payloadSize {
