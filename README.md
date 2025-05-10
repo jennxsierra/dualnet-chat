@@ -1,6 +1,6 @@
 # Dualnet Chat
 
-Dualnet Chat is a a demonstration of a command-line chat server and client applications using the OSI Layer 4 (Transport Layer) Transmission Control Protocol (TCP) and User Datagram Protocol (UDP). The technical differences are compared and contrasted.
+Dualnet Chat is a demonstration of a command-line chat server and client applications using the OSI Layer 4 (Transport Layer) Transmission Control Protocol (TCP) and User Datagram Protocol (UDP). The technical differences are compared and contrasted.
 
 ## Deliverables
 
@@ -39,7 +39,7 @@ cd dualnet-chat
 make
 ```
 
-4. Run a server application in one terminal window and then the respective client application in another. They should be built in the `bin` folder. From the project root, you can use a set of the following:
+4. Run a server application in one terminal window and the respective client application in another. They should be built in the `bin` folder. From the project root, you can use a set of the following:
 
 > [!TIP]
 > The default port for the TCP server is 4000, and the default port for the UDP server is 4001. You can specify a different port with the `--port` flag. For example, `./bin/tcp-server --port 4040`.
@@ -53,7 +53,7 @@ make
 
 ### Network Tests
 
-A number of network tests are included in the `tests` folder. They are run using some custom makefile rules and results are logged into a `results` folder within. The following are the available tests and the defined network conditions. For more information, examine the `Makefile` in the project root.
+Several network tests are included in the `tests` folder. They are run using custom makefile rules, and results are logged into a `results` folder. The following are the available tests and the defined network conditions. For more information, examine the `Makefile` in the project root.
 
 - `make test-tcp-network-good`
 - `make test-tcp-network-normal`
@@ -83,7 +83,7 @@ BAD_RATE = 1mbit
 
 ### Memory Tests
 
-To test the memory consumption of the server and client applications, run one of them in the a terminal window, take note of the port it is running on, and then run the following script with the port number as an argument.
+To test the memory consumption of the server and client applications, run one in a terminal window, take note of the port it is running on, and then run the following script with the port number as an argument.
 
 > [!NOTE]
 > You may need to make the script executable first. You can do this with the command `chmod +x scripts/check_memory.sh`.
@@ -95,8 +95,8 @@ To test the memory consumption of the server and client applications, run one of
 ## Project Structure Highlights
 
 - `cmd` directory contains the `main.go` files for the respective server and client applications. They are simple and only handle the `--port` flags.
-- `internal` directory contains the core logic of the server and client applications. The `server.go` and `client.go` files both utilize a struct with defined methods in order to handle the TCP and UDP protocols.
-- `scripts` and `tests` directories contain code for testing the applicications.
+- `internal` directory contains the core logic of the server and client applications. The `server.go` and `client.go` files utilize a struct with defined methods to handle the TCP and UDP protocols.
+- `scripts` and `tests` directories contain code for application testing.
 
 ## Cleanup
 
