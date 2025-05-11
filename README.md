@@ -6,7 +6,7 @@ Dualnet Chat is a demonstration of a command-line chat server and client applica
 
 As the final project for the CMPS2242 Systems Programming & Computer Organization course at the University of Belize, below are the deliverables prepared for submission:
 
-- Demonstration/reflections video ([YouTube]())
+- Demonstration/reflections video ([YouTube](https://youtu.be/7605W5ExoHw))
 - Presentation slides ([Google Slides](https://docs.google.com/presentation/d/1PG-6aN_arnryI0kGtF-N80mj_TJANbFhm8J4itljvZg/edit?usp=sharing))
 - Plan of action document ([Google Docs](https://docs.google.com/document/d/1DezkvbLiQQy_j1XP9Z_B_D_w3c2mnrVemJdGQyrfEuw/edit?usp=sharing))
 
